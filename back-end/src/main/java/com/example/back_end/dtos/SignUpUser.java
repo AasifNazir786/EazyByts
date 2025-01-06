@@ -1,5 +1,8 @@
 package com.example.back_end.dtos;
 
+import com.example.back_end.enums.AccountStatus;
+import com.example.back_end.enums.Role;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -34,19 +37,30 @@ public class SignUpUser {
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits")
     private String phoneNumber;
 
+    private Role role;
+
+    private AccountStatus accountStatus;
+
+    private String dateOfBirth;
+
     public SignUpUser() {}
 
-    public SignUpUser(String firstName, String lastName, String userName, String password, String email, String phoneNumber) {
+    public SignUpUser(Long id, String firstName, String lastName, String userName, String password, String email, String phoneNumber,
+            Role role, AccountStatus accountStatus, String dateOfBirth) {
+        this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.userName = userName;
         this.password = password;
         this.email = email;
         this.phoneNumber = phoneNumber;
+        this.accountStatus = accountStatus != null ? accountStatus : AccountStatus.ACTIVE;
+        this.role = role != null ? role : Role.USER;
+        this.dateOfBirth = dateOfBirth;
     }
 
     public Long getId() {
-        return this.id;
+        return id;
     }
 
     public void setId(Long id) {
@@ -65,6 +79,22 @@ public class SignUpUser {
         return this.email;
     }
     
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public AccountStatus getAccountStatus() {
+        return accountStatus;
+    }
+
+    public void setAccountStatus(AccountStatus accountStatus) {
+        this.accountStatus = accountStatus;
+    }
+
     public void setEmail(String email) {
         this.email = email;
     }
@@ -101,16 +131,17 @@ public class SignUpUser {
         this.lastName = lastName;
     }
 
+    public String getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(String dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
     @Override
     public String toString() {
-        return "{" +
-            " id='" + getId() + "'" +
-            ", userName='" + getUserName() + "'" +
-            ", email='" + getEmail() + "'" +
-            ", password='" + getPassword() + "'" +
-            ", phoneNumber='" + getPhoneNumber() + "'" +
-            ", firstName='" + getFirstName() + "'" +
-            ", lastName='" + getLastName() + "'" +
-            "}";
+        return "SignUpUser [firstName=" + firstName + ", lastName=" + lastName + ", userName=" + userName + ", email="
+                + email + ", role=" + role + ", accountStatus=" + accountStatus + "]";
     }
 }

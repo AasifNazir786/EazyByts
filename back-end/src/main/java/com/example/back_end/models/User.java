@@ -1,7 +1,9 @@
 package com.example.back_end.models;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.example.back_end.enums.AccountStatus;
 import com.example.back_end.enums.Role;
 
 import jakarta.persistence.Column;
@@ -36,13 +38,16 @@ public class User {
     @Column(unique = true, columnDefinition = "VARCHAR(20)")
     private String userName;
 
+    @Enumerated(EnumType.STRING)
+    private AccountStatus accountStatus;
+
     @NotNull(message = "Password is required")
     @Pattern(regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*()_+=\\-\\[\\]{}|:;\"'<>,.?/]).{8,}$",
                 message = "Password must contain at least one special character and one digit")
     private String password;
 
     @Enumerated(EnumType.STRING)
-    private Role role = Role.USER;
+    private Role role;
 
     @Column(unique = true)
     @Email(message = "Invalid email format")
@@ -56,21 +61,29 @@ public class User {
 
     private LocalDateTime tokenExpiry;
 
-    public User() {}
+    private LocalDate dateOfBirth;
 
+    // Default constructor
+    public User() {
+        this.accountStatus = AccountStatus.ACTIVE;  // Default values
+        this.role = Role.USER;
+    }
+
+    // Constructor with core fields
     public User(String firstName, String lastName, String userName, String password, Role role, String email,
-            String phoneNumber, String resetToken, LocalDateTime tokenExpiry) {
+            String phoneNumber, AccountStatus accountStatus, LocalDate dateOfBirth) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.userName = userName;
         this.password = password;
-        this.role = role;
+        this.role = role != null ? role : Role.USER;
         this.email = email;
         this.phoneNumber = phoneNumber;
-        this.resetToken = resetToken;
-        this.tokenExpiry = tokenExpiry;
+        this.accountStatus = accountStatus != null ? accountStatus : AccountStatus.ACTIVE;
+        this.dateOfBirth = dateOfBirth;
     }
 
+    // Getters and Setters
     public String getResetToken() {
         return resetToken;
     }
@@ -151,10 +164,26 @@ public class User {
         this.lastName = lastName;
     }
 
+    public AccountStatus getAccountStatus() {
+        return accountStatus;
+    }
+
+    public void setAccountStatus(AccountStatus accountStatus) {
+        this.accountStatus = accountStatus;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
     @Override
     public String toString() {
-        return "User [ResetToken=" + resetToken + ", email=" + email + ", firstName=" + firstName + ", id=" + id
-                + ", lastName=" + lastName + ", password=" + password + ", phoneNumber=" + phoneNumber + ", role=" + role
-                + ", tokenExpiry=" + tokenExpiry + ", userName=" + userName + "]";
+        return "User [id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", userName=" + userName
+                + ", accountStatus=" + accountStatus + ", role=" + role + ", email=" + email + ", tokenExpiry="
+                + tokenExpiry + ", dateOfBirth=" + dateOfBirth + "]";
     }
 }
