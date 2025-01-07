@@ -3,10 +3,14 @@ package com.example.back_end.services;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.back_end.custom_exceptions.InvalidCredentialsException;
+import com.example.back_end.custom_exceptions.TokenExpiredException;
 import com.example.back_end.custom_exceptions.UserAlreadyExistsException;
 import com.example.back_end.custom_exceptions.UserNotFoundException;
 import com.example.back_end.dtos.ForgotPasswordRequest;
@@ -20,90 +24,127 @@ import com.example.back_end.repositories.UserRepository;
 
 @Service
 public class UserService {
-    
-    private final UserRepository userRepository;
-    // private final BCryptPasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-        // this.passwordEncoder = passwordEncoder;
-    }
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-    // Register method
+    @Autowired
+    private UserRepository userRepository;
+
+    // @Autowired
+    // private PasswordEncoder passwordEncoder;
+
+    /**
+     * Register a new user.
+     */
     @Transactional
-    public ApiResponse register(SignUpUser userDto) {
-        if (userRepository.existsByUserName(userDto.getUserName()) ||
-            userRepository.existsByEmail(userDto.getEmail()) ||
-            userRepository.existsByPhoneNumber(userDto.getPhoneNumber())) {
-            throw new UserAlreadyExistsException("User already exists");
-        }
-        
-        User user = UserMapper.toUser(userDto);
-        user.setPassword(user.getPassword());
+    public ApiResponse register(SignUpUser signUpUser) {
+        validateUserUniqueness(signUpUser);
+
+        User user = UserMapper.toUser(signUpUser);
+        user.setPassword(signUpUser.getPassword()); // Encrypt password
         userRepository.save(user);
-        return new ApiResponse("User Registered Successfully", true);
+
+        logger.info("User registered successfully: {}", user.getUserName());
+        return ApiResponse.success("User registered successfully");
     }
-    
-    // Login method
+
+    /**
+     * Validate user login credentials.
+     */
     public ApiResponse verifyUser(LoginUser loginUser) {
         User user = userRepository.findByUserName(loginUser.getUserName())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
+        // Verify password
         if (!loginUser.getPassword().equals(user.getPassword())) {
+            logger.error("Invalid login attempt for username: {}", loginUser.getUserName());
             throw new InvalidCredentialsException("Invalid login credentials");
         }
-        
-        return new ApiResponse("Login Successful", true);
+
+        logger.info("User logged in successfully: {}", loginUser.getUserName());
+        return ApiResponse.success("Login successful");
     }
 
-    // Password Reset Request method
+    /**
+     * Request password reset (via email or phone).
+     */
     public ApiResponse requestPasswordReset(ForgotPasswordRequest request) {
-        User user;
+        User user = findUserByEmailOrPhone(request.getEmailOrPhone());
 
-        if(request.getEmailOrPhone().contains("@")) {
-            user = userRepository.findByEmail(request.getEmailOrPhone())
-                    .orElseThrow(() -> new UserNotFoundException("User not found"));
-        } else {
-            user = userRepository.findByPhoneNumber(request.getEmailOrPhone())
-                    .orElseThrow(() -> new UserNotFoundException("User not found"));
-        }
-
-        String resetToken = UUID.randomUUID().toString();
+        String resetToken = generateResetToken();
         user.setResetToken(resetToken);
-        user.setTokenExpiry(LocalDateTime.now().plusMinutes(5)); // Token expires in 5 minutes
+        user.setTokenExpiry(LocalDateTime.now().plusMinutes(5)); // Token validity: 5 minutes
+        userRepository.save(user);
 
-        userRepository.save(user); // Don't forget to save the user with reset token
-        
         sendResetNotification(user);
-        
-        return new ApiResponse("Password reset link sent to your email/phone", true);
+
+        logger.info("Password reset requested for user: {}", user.getUserName());
+        return ApiResponse.success("Password reset link sent to your email/phone");
     }
 
-    // Reset password method
-    public ApiResponse resetPassword(ResetPasswordDTO dto) {
-        User user = userRepository.findByResetToken(dto.getResetToken())
+    /**
+     * Reset the user's password.
+     */
+    @Transactional
+    public ApiResponse resetPassword(ResetPasswordDTO resetPasswordDTO) {
+        User user = userRepository.findByResetToken(resetPasswordDTO.getResetToken())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid reset token"));
 
-        if (LocalDateTime.now().isAfter(user.getTokenExpiry())) {
-            throw new IllegalArgumentException("Token expired");
-        }
+        validateResetTokenExpiry(user);
 
-        user.setPassword(dto.getNewPassword());
-        user.setResetToken(null);
-        user.setTokenExpiry(null);
+        user.setPassword(resetPasswordDTO.getNewPassword()); // Encrypt password
+        clearResetToken(user);
 
         userRepository.save(user);
 
-        return new ApiResponse("Password reset successful", true);
+        logger.info("Password reset successful for user: {}", user.getUserName());
+        return ApiResponse.success("Password reset successful");
     }
 
-    // Send reset notification (Email/SMS)
+    /**
+     * Helper Methods.
+     */
+
+    private void validateUserUniqueness(SignUpUser signUpUser) {
+        if (userRepository.existsByUserName(signUpUser.getUserName()) ||
+            userRepository.existsByEmail(signUpUser.getEmail()) ||
+            userRepository.existsByPhoneNumber(signUpUser.getPhoneNumber())) {
+            logger.error("User already exists: {}", signUpUser.getUserName());
+            throw new UserAlreadyExistsException("User already exists");
+        }
+    }
+
+    private User findUserByEmailOrPhone(String emailOrPhone) {
+        if (emailOrPhone.contains("@")) {
+            return userRepository.findByEmail(emailOrPhone)
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
+        } else {
+            return userRepository.findByPhoneNumber(emailOrPhone)
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
+        }
+    }
+
+    private String generateResetToken() {
+        return UUID.randomUUID().toString();
+    }
+
+    private void validateResetTokenExpiry(User user) {
+        if (LocalDateTime.now().isAfter(user.getTokenExpiry())) {
+            logger.error("Reset token expired for user: {}", user.getUserName());
+            throw new TokenExpiredException("Reset token expired");
+        }
+    }
+
+    private void clearResetToken(User user) {
+        user.setResetToken(null);
+        user.setTokenExpiry(null);
+    }
+
     private void sendResetNotification(User user) {
-        
         String message = "Hi " + user.getUserName() + ", here is your password reset link: " +
                 "http://reset-password?token=" + user.getResetToken();
-                
-        System.out.println("Sending to " + user.getEmail() + ": " + message);
-        System.out.println(user.getResetToken());
+
+        // Example: Send Email/SMS (mocked as a print statement)
+        logger.info("Notification sent to {}: {}", user.getEmail(), message);
     }
 }

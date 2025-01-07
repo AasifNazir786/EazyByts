@@ -12,6 +12,22 @@ public class ApiResponse {
         this.success = success;
     }
 
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
     // Factory method for success response
     public static ApiResponse success(String message) {
         return new ApiResponse(message, true);
