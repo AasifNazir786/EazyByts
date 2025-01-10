@@ -73,8 +73,14 @@ public class SecurityConfig {
                 .requestMatchers(
                         "/api/auth/login-form",
                         "/api/auth/login",
-                        "/WEB-INF/views/login.jsp"
+                        "/WEB-INF/views/login.jsp",
+                        "/api/auth/sign-up",
+                        "/api/auth/register",
+                        "/WEB-INF/views/register.jsp"
                 ).permitAll()
+                .requestMatchers(
+                    "/api/auth/home")
+                .authenticated()
                 .anyRequest()
                 .authenticated()
         );
@@ -87,7 +93,7 @@ public class SecurityConfig {
                 // .passwordParameter("password") // Custom password field
                 // // .successHandler(jwtAuthenticationSuccessHandler) // Use custom success handler
                 // .defaultSuccessUrl("/api/auth/home", true) // Redirect after successful login
-                // .failureUrl("/api/auth/login-form?error=true") // Redirect on login failure
+                .failureUrl("/api/auth/login-form?error=true") // Redirect on login failure
                 .permitAll()
         );
 

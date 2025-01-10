@@ -112,8 +112,12 @@ public class UserService {
         return response;
     }
     
-    
+    public User getUserInfo(String authHeader){
 
+        String token = authHeader.substring(7); // Extract JWT from Bearer token
+        String username = jwtService.extractUserName(token);
+        return userRepository.findByUserName(username).orElse(null); // Fetch user details by username
+    }
     /**
      * Request password reset (via email or phone).
      */

@@ -110,6 +110,8 @@
             return localStorage.getItem('jwt');  // JWT token is stored under 'jwt'
         }
 
+        console.log(window.localStorage.getItem('jwt'))
+
         // Function to verify the JWT token with the backend
         function verifyToken(token) {
             return fetch('/api/auth/verify-token', {
@@ -176,7 +178,7 @@
                 document.getElementById('error-message').style.display = 'block';
                 setTimeout(() => {
                     window.location.href = '/api/auth/login-form'; // Redirect to login page
-                }, 2000); // Redirect after 2 seconds
+                },20000); // Redirect after 2 seconds
             } else {
                 // If token exists, verify it with the backend
                 verifyToken(token);

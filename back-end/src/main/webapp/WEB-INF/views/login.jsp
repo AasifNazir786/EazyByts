@@ -199,17 +199,15 @@
         },
         body: JSON.stringify(loginData)
     });
-    <%-- console.log(response) --%>
     if (response.ok) {
         try {
             const result = await response.json();
-            console.log("Login response:", result);
             const token = result.jwtToken;
-            console.log("token is:", token)
-
             // Handle success
             localStorage.setItem('jwt', token); // Save JWT token in localStorage
-            window.location.href = '/api/auth/home'; // Redirect to a protected route
+            const jwtToken = localStorage.getItem('jwt');
+            console.log("entering home page")
+            window.location.href = '/api/auth/home';
         } catch (error) {
             console.error("Error parsing JSON:", error);
             document.getElementById('error-message').innerText = "An unexpected error occurred...";

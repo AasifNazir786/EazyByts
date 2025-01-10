@@ -6,8 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,7 +26,6 @@ import com.example.back_end.dtos.ResetPasswordDTO;
 import com.example.back_end.dtos.SignUpUser;
 import com.example.back_end.models.ApiResponse;
 import com.example.back_end.models.User;
-import com.example.back_end.services.JwtService;
 import com.example.back_end.services.UserService;
 import com.example.back_end.utils.ValidationUtil;
 
@@ -36,17 +35,20 @@ public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
     private final UserService userService;
-    private final JwtService jwtService;
 
-    public UserController(UserService userService, JwtService jwtService) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.jwtService = jwtService;
     }
 
     @GetMapping("/home")
-    public String homePage() {
-        logger.info("enter to home.jsp......................");
-        return "home";
+    public String home() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication != null && authentication.isAuthenticated()) {
+        logger.debug("Authenticated user: " + authentication.getName());
+    } else {
+        logger.debug("No authenticated user");
+    }
+    return "home";
     }
 
     // SignUp Page
@@ -96,7 +98,7 @@ public class UserController {
             logger.info("exited userService");
             if (apiResponse.isSuccess()) {
                 String jwtToken = apiResponse.getJwtToken();
-                logger.error("jwtToken is "+jwtToken);
+                logger.error("JWT Token generated: {}", jwtToken);
                 // Returning the JWT token as part of the JSON response
                 return ResponseEntity.ok(new ApiResponse("success", true, jwtToken));
             }
@@ -113,27 +115,18 @@ public class UserController {
 
 
     @PostMapping("/verify-token")
-    public ResponseEntity<?> verifyToken(@RequestHeader(value = "Authorization", required = false) String token) {
+    public ResponseEntity<?> verifyToken(@RequestHeader(value = "Authorization") String token) {
 
-        // Check if the token is present in the Authorization header
-        if (token == null || !token.startsWith("Bearer ")) {
-            ApiResponse response = new ApiResponse("Authorization header is missing or invalid", false, null);
-            return ResponseEntity.status(400).body(response); // Bad Request if header is missing or invalid
+        logger.error("token is: {}", token);
+        ApiResponse response = userService.verifyToken(token);
+
+        boolean isValid = response.isSuccess();
+        if (isValid) {
+            return ResponseEntity.ok(ApiResponse.success("Token is valid"));
+        } else {
+            return ResponseEntity.status(401).body(ApiResponse.failure("Token is invalid or expired"));
         }
-
-        token = token.substring(7); // Remove the "Bearer " prefix
-
-        // Validate the token
-        boolean isValid = jwtService.isValidToken(token);
-
-        // Prepare the response based on token validation
-        ApiResponse response = isValid ?
-                new ApiResponse("Token is valid", true, null) :
-                new ApiResponse("Token is invalid or expired", false, null);
-
-        return ResponseEntity.status(isValid ? 200 : 401).body(response); // 200 for valid, 401 for invalid
     }
-
 
     // Forgot Password Page
     @GetMapping("/forgot-password-form")
@@ -195,18 +188,15 @@ public class UserController {
         return "reset-password";
     }
 
+    // Endpoint to get user information
     @GetMapping("/user-info")
-    public User getUserInfo() {
-        logger.error("ksjaghj=================================================================");
-        // Get the current authenticated user from SecurityContext
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<User> getUserInfo(@RequestHeader("Authorization") String authHeader) {
+        User user = userService.getUserByUserName(authHeader);
 
-        if (principal instanceof UserDetails) {
-            String username = ((UserDetails) principal).getUsername();
-            // Fetch user info using the username
-            return userService.getUserByUserName(username);
+        if (user != null) {
+            return ResponseEntity.ok(user);
+        } else {
+            return ResponseEntity.status(404).body(null); // User not found
         }
-
-        return null;  // Return null if no authenticated user
     }
 }
