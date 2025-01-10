@@ -6,8 +6,11 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.example.back_end.custom_exceptions.InvalidCredentialsException;
 import com.example.back_end.custom_exceptions.TokenExpiredException;
@@ -22,6 +25,8 @@ import com.example.back_end.models.ApiResponse;
 import com.example.back_end.models.User;
 import com.example.back_end.repositories.UserRepository;
 
+import jakarta.transaction.Transactional;
+
 @Service
 public class UserService {
 
@@ -30,8 +35,14 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
-    // @Autowired
-    // private PasswordEncoder passwordEncoder;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private JwtService jwtService;
 
     /**
      * Register a new user.
@@ -41,29 +52,67 @@ public class UserService {
         validateUserUniqueness(signUpUser);
 
         User user = UserMapper.toUser(signUpUser);
-        user.setPassword(signUpUser.getPassword()); // Encrypt password
+        user.setPassword(passwordEncoder.encode(signUpUser.getPassword())); // Encrypt password
         userRepository.save(user);
 
         logger.info("User registered successfully: {}", user.getUserName());
-        return ApiResponse.success("User registered successfully");
+        return ApiResponse.success("User registered successfully", null);
     }
 
     /**
      * Validate user login credentials.
      */
     public ApiResponse verifyUser(LoginUser loginUser) {
+        // 1. Find the user by username (this step is fine)
         User user = userRepository.findByUserName(loginUser.getUserName())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-        // Verify password
-        if (!loginUser.getPassword().equals(user.getPassword())) {
+    
+        // 2. Verify password using BCryptPasswordEncoder (this step is fine)
+        if (!passwordEncoder.matches(loginUser.getPassword(), user.getPassword())) {
             logger.error("Invalid login attempt for username: {}", loginUser.getUserName());
             throw new InvalidCredentialsException("Invalid login credentials");
         }
-
-        logger.info("User logged in successfully: {}", loginUser.getUserName());
-        return ApiResponse.success("Login successful");
+    
+        logger.info("Password matched for user: {}", loginUser.getUserName());
+    
+        // 3. Authenticate the user using Spring Security's AuthenticationManager
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(user.getUserName(), loginUser.getPassword())
+        );
+    
+        // 4. If authentication is successful, generate the JWT token
+        if (authentication.isAuthenticated()) {
+            String token = jwtService.generateToken(user.getUserName());
+            logger.info("JWT token generated: {}", token);
+    
+            logger.info("User logged in successfully: {}", loginUser.getUserName());
+            return ApiResponse.success("Login successful", token);
+        }
+    
+        // 5. Return failure response if authentication fails (this is generally never reached with Spring Security)
+        return ApiResponse.failure("Login failed");
     }
+
+    public ApiResponse verifyToken(String token){
+        // Check if the token is present in the Authorization header
+        if (token == null || !token.startsWith("Bearer ")) {
+            return ApiResponse.failure("Authorization header is missing or invalid");
+        }
+
+        token = token.substring(7); // Remove the "Bearer " prefix
+
+        // Validate the token
+        boolean isValid = jwtService.isValidToken(token);
+
+        // Prepare the response based on token validation
+        ApiResponse response = isValid ?
+                ApiResponse.success("Token is valid") :
+                ApiResponse.failure("Token is invalid or expired");
+                
+        return response;
+    }
+    
+    
 
     /**
      * Request password reset (via email or phone).
@@ -79,7 +128,7 @@ public class UserService {
         sendResetNotification(user);
 
         logger.info("Password reset requested for user: {}", user.getUserName());
-        return ApiResponse.success("Password reset link sent to your email/phone");
+        return ApiResponse.success("Password reset link sent to your email/phone", null);
     }
 
     /**
@@ -87,28 +136,34 @@ public class UserService {
      */
     @Transactional
     public ApiResponse resetPassword(ResetPasswordDTO resetPasswordDTO) {
+
         User user = userRepository.findByResetToken(resetPasswordDTO.getResetToken())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid reset token"));
 
         validateResetTokenExpiry(user);
 
-        user.setPassword(resetPasswordDTO.getNewPassword()); // Encrypt password
+        // Encrypt the new password
+        user.setPassword(passwordEncoder.encode(resetPasswordDTO.getNewPassword())); 
         clearResetToken(user);
 
         userRepository.save(user);
 
         logger.info("Password reset successful for user: {}", user.getUserName());
-        return ApiResponse.success("Password reset successful");
+        return ApiResponse.success("Password reset successful", null);
+    }
+
+    public User getUserByUserName(String username){
+        return userRepository.findByUserName(username).orElseThrow(() -> new IllegalArgumentException("username not valid"));
     }
 
     /**
      * Helper Methods.
      */
-
     private void validateUserUniqueness(SignUpUser signUpUser) {
         if (userRepository.existsByUserName(signUpUser.getUserName()) ||
             userRepository.existsByEmail(signUpUser.getEmail()) ||
             userRepository.existsByPhoneNumber(signUpUser.getPhoneNumber())) {
+
             logger.error("User already exists: {}", signUpUser.getUserName());
             throw new UserAlreadyExistsException("User already exists");
         }
@@ -129,7 +184,7 @@ public class UserService {
     }
 
     private void validateResetTokenExpiry(User user) {
-        if (LocalDateTime.now().isAfter(user.getTokenExpiry())) {
+        if (user.getTokenExpiry() == null || LocalDateTime.now().isAfter(user.getTokenExpiry())) {
             logger.error("Reset token expired for user: {}", user.getUserName());
             throw new TokenExpiredException("Reset token expired");
         }

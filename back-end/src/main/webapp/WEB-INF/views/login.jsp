@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -130,6 +131,7 @@
                 opacity: 0;
                 transform: translateY(-20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -137,21 +139,15 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h2>Login</h2>
 
         <!-- Display error message if available -->
-        <% if (request.getAttribute("error") != null) { %>
-            <div class="error-message">
-                <p><%= request.getAttribute("error") %></p>
-            </div>
-        <% } %>
+        <div id="error-message" class="error-message" style="display: none;"></div>
 
-        <form action="/api/auth/login" method="post">
-            <!-- CSRF token -->
-            <input type="hidden" name="_csrf" value="${_csrf.token}">
-
+        <form id="loginForm" method="post" action="/api/auth/login">
             <!-- Username -->
             <label for="username">Username:</label>
             <input type="text" name="userName" id="username" placeholder="Enter your username"
@@ -170,5 +166,67 @@
             <p>Don't have an account? <a href="/api/auth/sign-up">Sign Up</a></p>
         </form>
     </div>
+
+    <script>
+        // Form submit event handling
+        document.getElementById('loginForm').addEventListener('submit', async function (event) {
+    event.preventDefault(); // Prevent the default form submission
+
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    console.log("userName is :",  username)
+    console.log("password is :", password)
+
+    // Client-side form validation
+    if (username.trim() === '' || password.trim() === '') {
+        document.getElementById('error-message').innerText = "Username and password are required.";
+        document.getElementById('error-message').style.display = 'block';
+        return;
+    }
+
+    const loginData = {
+        userName: username,
+        password: password
+    };
+
+    console.log("login data :", loginData)
+
+    const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(loginData)
+    });
+    <%-- console.log(response) --%>
+    if (response.ok) {
+        try {
+            const result = await response.json();
+            console.log("Login response:", result);
+            const token = result.jwtToken;
+            console.log("token is:", token)
+
+            // Handle success
+            localStorage.setItem('jwt', token); // Save JWT token in localStorage
+            window.location.href = '/api/auth/home'; // Redirect to a protected route
+        } catch (error) {
+            console.error("Error parsing JSON:", error);
+            document.getElementById('error-message').innerText = "An unexpected error occurred...";
+            document.getElementById('error-message').style.display = 'block';
+        }
+    } else {
+        try {
+            const errorResult = await response.json();
+            document.getElementById('error-message').innerText = errorResult.message || "Login failed.";
+        } catch (error) {
+            console.error("Error parsing JSON:", error);
+            document.getElementById('error-message').innerText = "An unexpected error occurred.....";
+        }
+        document.getElementById('error-message').style.display = 'block';
+    }
+});
+    </script>
 </body>
+
 </html>

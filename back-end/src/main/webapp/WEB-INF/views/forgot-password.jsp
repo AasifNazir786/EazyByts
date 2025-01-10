@@ -103,15 +103,18 @@
 <body>
     <div class="container">
         <h1>Reset Password Request</h1>
-        <!-- Display error message if available -->
+        
         <% if (request.getAttribute("error") != null) { %>
             <div class="error-message">
                 <p><%= request.getAttribute("error") %></p>
             </div>
         <% } %>
+
         <form id="reset-password-form" action="/api/auth/forgot-password" method="post">
+
             <label for="emailOrPhone">Enter email or phone</label>
             <input type="email" id="emailOrPhone" name="emailOrPhone" placeholder="Enter Email or Phone" required>
+            
             <button type="submit">Submit</button>
         </form>
     </div>

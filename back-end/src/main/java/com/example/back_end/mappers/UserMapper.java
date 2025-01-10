@@ -1,7 +1,5 @@
 package com.example.back_end.mappers;
 
-import java.time.LocalDate;
-
 import com.example.back_end.dtos.SignUpUser;
 import com.example.back_end.models.User;
 
@@ -16,7 +14,10 @@ public class UserMapper {
         signUpUser.setUserName(user.getUserName());
         signUpUser.setEmail(user.getEmail());
         signUpUser.setPhoneNumber(user.getPhoneNumber());
-        signUpUser.setDateOfBirth(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null);
+        
+        // Convert LocalDate to String for DTO
+        signUpUser.setDateOfBirth(user.getDateOfBirth() != null ? user.getDateOfBirth() : null);
+        
         signUpUser.setAccountStatus(user.getAccountStatus());
         signUpUser.setRole(user.getRole());
         return signUpUser;
@@ -31,10 +32,10 @@ public class UserMapper {
         user.setUserName(userDto.getUserName());
         user.setEmail(userDto.getEmail());
         user.setPhoneNumber(userDto.getPhoneNumber());
-        
-        // Convert dateOfBirth string to LocalDate if present and valid
-        if (userDto.getDateOfBirth() != null && !userDto.getDateOfBirth().isEmpty()) {
-            user.setDateOfBirth(userDto.getDateOfBirth() != null ? LocalDate.parse(userDto.getDateOfBirth()) : null);
+
+        // Convert dateOfBirth from String (DTO) to LocalDate (Entity)
+        if (userDto.getDateOfBirth() != null && !userDto.getDateOfBirth().toString().isEmpty()) {
+            user.setDateOfBirth(userDto.getDateOfBirth());
         }
 
         user.setAccountStatus(userDto.getAccountStatus());

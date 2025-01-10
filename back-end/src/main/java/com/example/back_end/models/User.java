@@ -16,6 +16,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 
 @Entity
@@ -60,7 +61,9 @@ public class User {
     private String resetToken;
 
     private LocalDateTime tokenExpiry;
-
+    
+    @NotNull(message = "Date of birth is required")
+    @Past(message = "Date of birth must be a valid past date")
     private LocalDate dateOfBirth;
 
     // Default constructor

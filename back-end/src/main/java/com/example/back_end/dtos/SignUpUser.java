@@ -1,10 +1,13 @@
 package com.example.back_end.dtos;
 
+import java.time.LocalDate;
+
 import com.example.back_end.enums.AccountStatus;
 import com.example.back_end.enums.Role;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -37,11 +40,13 @@ public class SignUpUser {
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits")
     private String phoneNumber;
 
+    @NotNull(message = "Date of birth is required")
+    @Past(message = "Date of birth must be a valid past date")
+    private LocalDate dateOfBirth;
+
     private Role role;
 
     private AccountStatus accountStatus;
-
-    private String dateOfBirth;
 
     public SignUpUser() {}
 
@@ -56,7 +61,7 @@ public class SignUpUser {
         this.phoneNumber = phoneNumber;
         this.accountStatus = accountStatus != null ? accountStatus : AccountStatus.ACTIVE;
         this.role = role != null ? role : Role.USER;
-        this.dateOfBirth = dateOfBirth;
+        this.dateOfBirth = LocalDate.parse(dateOfBirth);
     }
 
     public Long getId() {
@@ -131,11 +136,11 @@ public class SignUpUser {
         this.lastName = lastName;
     }
 
-    public String getDateOfBirth() {
+    public LocalDate getDateOfBirth() {
         return dateOfBirth;
     }
 
-    public void setDateOfBirth(String dateOfBirth) {
+    public void setDateOfBirth(LocalDate dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
     }
 
