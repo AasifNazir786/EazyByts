@@ -27,16 +27,25 @@ public class ChatController {
     }
 
     // Send message to a group
-    @MessageMapping("/sendGroupMessage")
+    @MessageMapping("/app/sendGroupMessage")
     public void sendGroupMessage(String groupName, String sender, String content) {
-        ChatMessage chatMessage = chatMessageService.sendMessageToGroup(sender, groupName, content);
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setSender(sender);
+        chatMessage.setGroupName(groupName);
+        chatMessage.setContent(content);
+        chatMessageService.sendMessageToGroup(chatMessage);
+        messagingTemplate.convertAndSend("/topic/group/" + groupName, chatMessage);
         messagingTemplate.convertAndSend("/topic/group/" + groupName, chatMessage);
     }
 
     // Send private message
-    @MessageMapping("/sendPrivateMessage")
+    @MessageMapping("/app/sendPrivateMessage")
     public void sendPrivateMessage(String sender, String receiver, String content) {
-        ChatMessage chatMessage = chatMessageService.sendPrivateMessage(sender, receiver, content);
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setSender(sender);
+        chatMessage.setReceiver(receiver);
+        chatMessage.setContent(content);
+        chatMessageService.sendPrivateMessage(chatMessage);
         messagingTemplate.convertAndSend("/topic/private/" + receiver, chatMessage);
     }
 

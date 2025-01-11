@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Chat App</title>
+    <link rel="stylesheet" href="./../static/css/style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Dynamic Chat Section -->
+        <div class="chat-box" id="groupChatBox">
+            <header class="chat-header">
+                <h3>Group Chat</h3>
+                <input type="text" id="groupInput" class="input-field" placeholder="Enter group name">
+            </header>
+            <div id="groupMessages" class="messages"></div>
+            <footer class="message-input">
+                <input type="text" id="messageInput" placeholder="Type a message..." class="input-field">
+                <button id="sendGroupButton" class="send-button">Send</button>
+            </footer>
+        </div>
+
+        <div class="chat-box" id="privateChatBox">
+            <header class="chat-header">
+                <h3>Private Chat</h3>
+                <input type="text" id="receiverInput" class="input-field" placeholder="Receiver Username">
+            </header>
+            <div id="privateMessages" class="messages"></div>
+            <footer class="message-input">
+                <input type="text" id="messageInputPrivate" placeholder="Type a private message..." class="input-field">
+                <button id="sendPrivateButton" class="send-button">Send</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="./../static/js/chat.js"></script>
+</body>
+</html>

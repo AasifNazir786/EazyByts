@@ -76,10 +76,10 @@ public class SecurityConfig {
                         "/WEB-INF/views/login.jsp",
                         "/api/auth/sign-up",
                         "/api/auth/register",
-                        "/WEB-INF/views/register.jsp"
+                        "/WEB-INF/views/register.jsp" // unauthenticated routes and views
                 ).permitAll()
                 .requestMatchers(
-                    "/api/auth/home")
+                    "/api/auth/home", "/chat")
                 .authenticated()
                 .anyRequest()
                 .authenticated()
@@ -89,20 +89,20 @@ public class SecurityConfig {
         http.formLogin(form -> form
                 .loginPage("/api/auth/login-form") // Custom login form URL
                 // .loginProcessingUrl("/api/auth/login") // Endpoint for form submission
-                // .usernameParameter("userName") // Custom username field
-                // .passwordParameter("password") // Custom password field
-                // // .successHandler(jwtAuthenticationSuccessHandler) // Use custom success handler
-                // .defaultSuccessUrl("/api/auth/home", true) // Redirect after successful login
+                .usernameParameter("userName") // Custom username field
+                .passwordParameter("password") // Custom password field
+                // .successHandler(jwtAuthenticationSuccessHandler) // Use custom success handler
+                .defaultSuccessUrl("/api/auth/home", true) // Redirect after successful login
                 .failureUrl("/api/auth/login-form?error=true") // Redirect on login failure
                 .permitAll()
         );
 
         // Logout configuration
-        // http.logout(logout -> logout
-        //         .logoutUrl("/api/auth/logout")
-        //         .logoutSuccessUrl("/api/auth/login-form?logout=true") // Redirect after logout
-        //         .permitAll()
-        // );
+        http.logout(logout -> logout
+                .logoutUrl("/api/auth/logout")
+                .logoutSuccessUrl("/api/auth/login-form?logout=true") // Redirect after logout
+                .permitAll()
+        );
 
         // JWT Filter for handling API requests with tokens
         http.sessionManagement(session -> session

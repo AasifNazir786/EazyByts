@@ -1,4 +1,4 @@
-package com.example.configurations;
+package com.example.back_end.configurations;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
