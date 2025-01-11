@@ -72,8 +72,16 @@ The frontend is developed with HTML, CSS, and JavaScript:
    - Request Body:
      ```json
      {
-       "username": "exampleUser",
-       "password": "examplePassword"
+        "id": 1,
+        "firstName": "Aasif",
+        "lastName": "Shah",
+        "userName": "Aasif123",
+        "password": "Pass@1234",
+        "email": "aasif123e@example.com",
+        "phoneNumber": "9876543210",
+        "dateOfBirth": "01/01/2000",
+        "role": "USER",
+        "accountStatus": "ACTIVE"
      }
      ```
 
@@ -98,7 +106,7 @@ The frontend is developed with HTML, CSS, and JavaScript:
 
 ## How It Works
 1. **User Registration and Login**
-   - Users register by providing a username and password.
+   - Users register by providing a signup details.
    - Upon login, the server generates a JWT, which the user uses for all subsequent requests.
 
 2. **Real-Time Messaging**
@@ -126,7 +134,7 @@ The frontend is developed with HTML, CSS, and JavaScript:
 ---
 
 ## Contributors
-[Your Name]
+[Aasif Nazir]
 
 ---
 
